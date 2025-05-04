@@ -1,42 +1,35 @@
 # version: "3.9"
+
 services:
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
     depends_on:
       - backend
     ports:
       - "5173:5173"
-    networks:
-      - app-net
+    extra_hosts:
+      - "localhost:host-gateway"
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
     depends_on:
       - mongo
     environment:
-      - MONGO_CONNECTION_STRING=mongodb://root:example@mongo:27017/testinglab?authSource=admin
+      - MONGO_CONNECTION_STRING=mongodb://mongo:27017/myMernApp
+      - PORT=8888
+      - HOST=0.0.0.0
     ports:
       - "8888:8888"
-    networks:
-      - app-net
 
   mongo:
     image: mongo:latest
     container_name: mongo
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=example
-      - MONGO_INITDB_DATABASE=testinglab
     ports:
       - "27017:27017"
     volumes:
-      - mongodata:/data/db
-    networks:
-      - app-net
-
-networks:
-  app-net:
-    driver: bridge
+      - mongo-data:/data/db
 
 volumes:
-  mongodata:
+  mongo-data:

@@ -65,14 +65,16 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
         - name: MONGO_CONNECTION_STRING
-          value: "mongodb://root:example@mongo:27017/testinglab?authSource=admin"
+          value: "mongodb://mongo:27017/myMernApp"
+        - name: PORT
+          value: "8888"
         - name: HOST
           value: "0.0.0.0"
         ports:
         - containerPort: 8888
-        livenessProbe:         # Liveness probe using HTTP GET on /health
+        livenessProbe:         # Liveness probe using HTTP GET on /ping
           httpGet:
-            path: /health
+            path: /ping
             port: 8888
           initialDelaySeconds: 5
           periodSeconds: 10

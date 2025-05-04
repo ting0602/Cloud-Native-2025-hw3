@@ -15,21 +15,9 @@ spec:
     spec:
       containers:
       - name: mongo
-        image: mongo:latest
-        imagePullPolicy: IfNotPresent
-        args: ["--bind_ip_all"]
-        env:
-        - name: MONGO_INITDB_ROOT_USERNAME
-          value: "root"
-        - name: MONGO_INITDB_ROOT_PASSWORD
-          value: "example"
-        - name: MONGO_INITDB_DATABASE
-          value: "testinglab"
+        image: mongo
         ports:
         - containerPort: 27017
-        volumeMounts:
-        - name: mongo-data
-          mountPath: /data/db  # Mount the PVC to the default MongoDB data path
         livenessProbe:         # Liveness probe using exec to ping MongoDB
           exec:
             command:
@@ -38,10 +26,6 @@ spec:
               - "db.adminCommand('ping')"
           initialDelaySeconds: 5
           periodSeconds: 10
-      volumes:
-      - name: mongo-data
-        persistentVolumeClaim:
-          claimName: mongo-pvc
 
 ---
 # Backend Deployment (Fastify app)

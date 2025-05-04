@@ -1,16 +1,14 @@
 # version: "3.9"
 
 services:
-  frontend:
-    build:
-      context: ./frontend
-    depends_on:
-      - backend
+  mongo:
+    image: mongo
+    container_name: mongo
     ports:
-      - "5173:5173"
-    extra_hosts:
-      - "localhost:host-gateway"
-
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+      
   backend:
     build:
       context: ./backend
@@ -23,13 +21,15 @@ services:
     ports:
       - "8888:8888"
 
-  mongo:
-    image: mongo:latest
-    container_name: mongo
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
     ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
+      - "5173:5173"
+    extra_hosts:
+      - "localhost:host-gateway"
 
 volumes:
   mongo-data:

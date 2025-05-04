@@ -1,17 +1,4 @@
-# 1. Declare a PersistentVolumeClaim (PVC) to persist MongoDB data
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mongo-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
----
-
-# 2. MongoDB Deployment
+# MongoDB Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -30,6 +17,7 @@ spec:
       - name: mongo
         image: mongo:latest
         imagePullPolicy: IfNotPresent
+        args: ["--bind_ip_all"]
         env:
         - name: MONGO_INITDB_ROOT_USERNAME
           value: "root"
@@ -42,18 +30,21 @@ spec:
         volumeMounts:
         - name: mongo-data
           mountPath: /data/db  # Mount the PVC to the default MongoDB data path
-        livenessProbe:         # Liveness probe using TCP check on port 27017
-          tcpSocket:
-            port: 27017
-          initialDelaySeconds: 15
-          periodSeconds: 30
+        livenessProbe:         # Liveness probe using exec to ping MongoDB
+          exec:
+            command:
+              - mongo
+              - --eval
+              - "db.adminCommand('ping')"
+          initialDelaySeconds: 5
+          periodSeconds: 10
       volumes:
       - name: mongo-data
         persistentVolumeClaim:
           claimName: mongo-pvc
----
 
-# 3. Backend Deployment (Fastify app)
+---
+# Backend Deployment (Fastify app)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -78,15 +69,15 @@ spec:
         - name: HOST
           value: "0.0.0.0"
         ports:
-        - containerPort: 3000
-        livenessProbe:         # Liveness probe using TCP check on port 3000
-          tcpSocket:
-            port: 3000
-          initialDelaySeconds: 15
-          periodSeconds: 30
+        - containerPort: 8888
+        livenessProbe:         # Liveness probe using HTTP GET on /health
+          httpGet:
+            path: /health
+            port: 8888
+          initialDelaySeconds: 5
+          periodSeconds: 10
 ---
-
-# 4. Frontend Deployment
+# Frontend Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -106,10 +97,10 @@ spec:
         image: ghcr.io/ting0602/cloud-native-2025-hw3-frontend:latest
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 80
-        livenessProbe:         # Liveness probe using HTTP GET on root path
+        - containerPort: 5173
+        livenessProbe:         # Liveness probe using HTTP GET on /
           httpGet:
             path: /
-            port: 80
+            port: 5173
           initialDelaySeconds: 10
           periodSeconds: 30

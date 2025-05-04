@@ -4,8 +4,8 @@ services:
     build: ./frontend
     depends_on:
       - backend
-    # ports:
-    #   - "80:80"
+    ports:
+      - "5173:5173"
     networks:
       - app-net
 
@@ -16,7 +16,7 @@ services:
     environment:
       - MONGO_CONNECTION_STRING=mongodb://root:example@mongo:27017/testinglab?authSource=admin
     ports:
-      - "3000:3000"
+      - "8888:8888"
     networks:
       - app-net
 

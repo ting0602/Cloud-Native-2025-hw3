@@ -1,0 +1,115 @@
+# 1. Declare a PersistentVolumeClaim (PVC) to persist MongoDB data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+
+# 2. MongoDB Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+      - name: mongo
+        image: mongo:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: "root"
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: "example"
+        - name: MONGO_INITDB_DATABASE
+          value: "testinglab"
+        ports:
+        - containerPort: 27017
+        volumeMounts:
+        - name: mongo-data
+          mountPath: /data/db  # Mount the PVC to the default MongoDB data path
+        livenessProbe:         # Liveness probe using TCP check on port 27017
+          tcpSocket:
+            port: 27017
+          initialDelaySeconds: 15
+          periodSeconds: 30
+      volumes:
+      - name: mongo-data
+        persistentVolumeClaim:
+          claimName: mongo-pvc
+---
+
+# 3. Backend Deployment (Fastify app)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: ghcr.io/ting0602/cloud-native-2025-hw3-backend:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MONGO_CONNECTION_STRING
+          value: "mongodb://root:example@mongo:27017/testinglab?authSource=admin"
+        - name: HOST
+          value: "0.0.0.0"
+        ports:
+        - containerPort: 3000
+        livenessProbe:         # Liveness probe using TCP check on port 3000
+          tcpSocket:
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 30
+---
+
+# 4. Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: ghcr.io/ting0602/cloud-native-2025-hw3-frontend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        livenessProbe:         # Liveness probe using HTTP GET on root path
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 30
